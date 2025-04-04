@@ -1,3 +1,4 @@
+
 ## 1. twosum
 **類型:** array, algorithm
 ### 筆記:
@@ -31,9 +32,11 @@ numMap[nums[i]] = i;
 }
 return {}; // No solution found
 }
+```
 ## 238. Product of Array Expect Self
 **類型:** array, algorithm
 ### 筆記:
+```
 ```
 右往左也一樣 乘到asnwer裡面 這樣每一個就是除了自己以外的左邊和右邊所有的乘積相乘
 ### 程式碼:
