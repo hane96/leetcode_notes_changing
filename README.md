@@ -19,11 +19,17 @@
 ### 原始筆記格式:
 
 題目: question
+
 類型: topic1, topic2
+
 筆記:
+
 testing
+
 123
+
 程式碼:
+
     cout<<"hi";
 
 ### 轉換後:
