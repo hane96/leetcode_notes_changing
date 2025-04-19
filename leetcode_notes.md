@@ -821,6 +821,310 @@ return ans[amount];
 }
 ```
 
+## 997. find the town judge
+**類型:** graph
+### 筆記:
+可以正常跑兩個for迴圈檢查每一個人 1.有被他人信任就跳過 2.count紀錄被多少人信任 
+第二個方法是紀錄(被信任次數-信任人次數) 只要迴圈跑過一遍edge改變有關的點就好
+### 程式碼:
+```cpp
+int findJudge(int n, vector<vector<int>>& trust) {
+//int trust[a][b]
+for(int j=1;j<=n;++j) //檢查j有沒有相信人
+{
+int count=0; //計算相信j的人數
+for(int i=0;i<trust.size();++i) //跑過每一個edge
+{
+if(trust[i][0]==j)
+{
+count=0;
+break;
+}
+if(trust[i][1]==j) ++count;
+}
+if(count==n-1) return j;
+}
+return -1;
+}
+```
+
+## 1971. find if path exists in graph
+**類型:** graph
+### 筆記:
+先將圖轉為adjacency list再做BFS 可以從O(n^2)變成O(edge) 要注意雙向圖轉換adjacency list時需要考慮兩邊
+### 程式碼:
+```cpp
+bool validPath(int n, vector<vector<int>>& edges, int source, int destination) {
+queue<int> q;
+q.push(source);
+vector<int> visit(n,0);
+visit[source]=1;
+if(source==destination) return true;
+vector<vector<int>> adj(n);
+for(int i=0;i<edges.size();++i)
+{
+adj[edges[i][0]].push_back(edges[i][1]);
+adj[edges[i][1]].push_back(edges[i][0]); //雙向
+}
+while(!q.empty())
+{
+int now=q.front();
+if(now==destination) return true;
+q.pop();
+for(int i=0;i<adj[now].size();++i)
+{
+if(visit[ adj[now][i] ]==0)
+{
+q.push(adj[now][i]);
+visit[adj[now][i]]=1;
+}
+}
+}
+return false;
+}
+```
+
+## 547. number of provinces
+**類型:** graph
+### 筆記:
+對visit掃過一遍 看未visit過的就好 
+大部分情況用adjacency list更好 因為通常是稀疏圖 edge數比N^2少很多
+### 程式碼:
+```cpp
+int findCircleNum(vector<vector<int>>& isConnected) {
+int n=isConnected.size();
+vector<int> visit(n,0);
+int ans=0;
+for(int i=0;i<n;++i)
+{
+if(visit[i]==0)
+{
+++ans;
+queue<int> q;
+q.push(i);
+visit[i]=1;
+while(!q.empty())
+{
+int now=q.front();
+q.pop();
+for(int j=0;j<n;++j)
+{
+if(visit[j]==0 && isConnected[now][j]==1)
+{
+visit[j]=1;
+q.push(j);
+}
+}
+}
+}
+}
+return ans;
+}
+```
+
+## 200. number of islands
+**類型:** grpah
+### 筆記:
+matrix上的搜尋可以用direction vector去減少需要寫的條件 ex: 
+vector<vector<int>> directions = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}}; 
+x2=x+directions[i][0] 再對x2檢查範圍 y2也是一樣的概念 
+### 程式碼:
+```cpp
+int numIslands(vector<vector<char>>& grid) {
+if (grid.empty()) return 0;
+int m = grid.size(), n = grid[0].size();
+int ans = 0;
+vector<vector<int>> directions = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+for (int i = 0; i < m; ++i) {
+for (int j = 0; j < n; ++j) {
+if (grid[i][j] == '1') {
+++ans;
+queue<pair<int, int>> q;
+q.push({i, j});
+grid[i][j] = '0';
+while (!q.empty()) {
+auto now = q.front(); q.pop();
+int x = now.first, y = now.second;
+for (const auto& d : directions) {
+int nx = x + d[0], ny = y + d[1];
+if (nx >= 0 && nx < m && ny >= 0 && ny < n && grid[nx][ny] == '1') {
+grid[nx][ny] = '0';
+q.push({nx, ny});
+}
+}
+}
+}
+}
+}
+return ans;
+}
+```
+
+## 542. 01 matrix
+**類型:** graph
+### 筆記:
+對一個matrix要對每個1計算最近的0的距離
+這題從1下手會很麻煩 需要維護depth還有確保路徑最短 
+從0開始往外延伸會更簡單 每輪往沒走過的部分擴展 可以確保每輪最短路徑能到的範圍 這方法是多源BFS
+創一個distance陣列 原始為0的部分dist=0 往外擴展 
+下一步為上一步的dis+1 來做到算距離的效果
+### 程式碼:
+```cpp
+vector<vector<int>> updateMatrix(vector<vector<int>>& mat) {
+vector<vector<int>> dir={{1,0},{0,1},{-1,0},{0,-1}};
+vector<vector<int>> dist(mat.size(),vector<int>(mat[0].size(),-1));
+queue<pair<int,int>> q;
+for(int i=0;i<mat.size();++i)
+{
+for(int j=0;j<mat[0].size();++j)
+{
+if(mat[i][j]==0)
+{
+dist[i][j]=0;
+q.push({i,j});
+}
+}
+}
+while(!q.empty())
+{
+pair<int,int> now=q.front();
+q.pop();
+for(int i=0;i<4;++i)
+{
+if(now.first+dir[i][0]>=0&&now.first+dir[i][0]<mat.size()&&now.second+dir[i][1]>=0&&now.second+dir[i][1]<mat[0].size()&&dist[now.first+dir[i][0]][now.second+dir[i][1]]==-1)
+{
+dist[now.first+dir[i][0]][now.second+dir[i][1]]=dist[now.first][now.second]+1;
+q.push({now.first+dir[i][0], now.second+dir[i][1]});
+}
+}
+}
+return dist;
+}
+```
+
+## 994. rotting oranges
+**類型:** graph
+### 筆記:
+和上一題類似 多加幾個狀態而已
+### 程式碼:
+```cpp
+int orangesRotting(vector<vector<int>>& grid) {
+vector<vector<int>> dist(grid.size(), vector<int>(grid[0].size(),-1));
+queue<pair<int,int>> q;
+for(int i=0;i<grid.size();++i) //find rotten oranges and put into queue
+{
+for(int j=0;j<grid[0].size();++j)
+{
+if(grid[i][j]==0) dist[i][j]=-2;
+if(grid[i][j]==2)
+{
+dist[i][j]=0;
+q.push({i,j});
+}
+}
+}
+int ans=0;
+vector<vector<int>> dir={{1,0},{0,1},{-1,0},{0,-1}};
+while(!q.empty())
+{
+pair<int,int> now=q.front();
+q.pop();
+int x=now.first;
+int y=now.second;
+for(int i=0;i<4;++i)
+{
+if(x+dir[i][0]>=0 && y+dir[i][1]>=0 && x+dir[i][0]<grid.size() && y+dir[i][1]<grid[0].size() && dist[x+dir[i][0]][y+dir[i][1]]==-1)
+{
+dist[x+dir[i][0]][y+dir[i][1]]=dist[x][y]+1;
+q.push({x+dir[i][0],y+dir[i][1]});
+if(dist[x+dir[i][0]][y+dir[i][1]]>ans) ans=dist[x+dir[i][0]][y+dir[i][1]];
+}
+}
+}
+for(int i=0;i<grid.size();++i) //check if there is any fresh orange
+{
+for(int j=0;j<grid[0].size();++j)
+{
+if(dist[i][j]==-1) return -1;
+}
+}
+return ans;
+}
+```
+
+## 104. maximum depth of binary tree
+**類型:** tree graph
+### 筆記:
+tree的dfs大部分都是找遞迴關係就好 其中class member的呼叫 用.是物件本身去呼叫 用->是物件的指標去呼叫
+ex: TreeNode*p 要呼叫val   1. p->val 2.*p.val 這兩個都可以
+### 程式碼:
+```cpp
+int maxDepth(TreeNode* root) {
+if(root==NULL) return 0;
+TreeNode* left_depth = root->left;
+TreeNode* right_depth = root->right;
+return max(maxDepth(left_depth),maxDepth(right_depth))+1;
+}
+```
+
+## 21. merge two list node
+**類型:** tree graph
+### 筆記:
+這題merge的寫法是每次比較小的 保留小的開頭 後面(next)等於merge後面的部分
+### 程式碼:
+```cpp
+ListNode* mergeTwoLists(ListNode* list1, ListNode* list2) {
+if(list1==NULL) return list2;
+if(list2==NULL) return list1;
+if(list1->val < list2->val)
+{
+list1->next=mergeTwoLists(list1->next, list2);
+return list1;
+}
+if(list1->val >= list2->val)
+{
+list2->next=mergeTwoLists(list2->next, list1);
+return list2;
+}
+return NULL;
+}
+```
+
+## 257. binary tree path
+**類型:** tree graph
+### 筆記:
+利用vector<string> &ans來記錄答案 這樣在跑下層時也會記錄在同一份ans裡面
+### 程式碼:
+```cpp
+void dfs(TreeNode* root, string s, vector<string> &ans)
+{
+if(root->left==NULL && root->right==NULL)
+{
+s=s+to_string(root->val);
+ans.push_back(s);
+}
+else if(root->left==NULL)
+{
+dfs(root->right, s+to_string(root->val)+"->", ans);
+}
+else if(root->right==NULL)
+{
+dfs(root->left, s+to_string(root->val)+"->", ans);
+}
+else
+{
+dfs(root->right, s+to_string(root->val)+"->", ans);
+dfs(root->left, s+to_string(root->val)+"->", ans);
+}
+}
+vector<string> binaryTreePaths(TreeNode* root) {
+vector<string> ans1;
+string s1;
+dfs(root, s1, ans1);
+return ans1;
+}
+```
+
 ## 
 **類型:** 
 ### 筆記:
