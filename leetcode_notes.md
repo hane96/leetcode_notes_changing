@@ -1125,6 +1125,438 @@ return ans1;
 }
 ```
 
+## 743. network delay time
+**類型:** grpah dijkstra
+### 筆記:
+可以分為三個步驟 第一步是把題目的edge換成adjacency list去存方便後面操作 第二步是做出指定起點的dijkstra表格 從起點到每個點的最小距離 這個做法等一下再談 然後第三步是做好表格後用for迴圈跑一遍算總距離和  然後回到第二步 priority queue是為了dijkstra去做的 然後只先放入起點進去pq 再來用BFS的方式 每次取出一個已經有dist的點 如果dist比目前更小就更新沒有就不管  然後去對有連接到的點去更新距離並放入pq代表有連接到 之後就能拿來繼續往後走 然後前面有graph[u]可以用來更好的找到已u為起點的edge得到可以到達的點和距離
+### 程式碼:
+```cpp
+int networkDelayTime(vector<vector<int>>& times, int n, int k) {
+vector<vector<pair<int, int>>> graph(n + 1); // adjacency list: node -> {(neighbor, weight)}
+for (auto& edge : times) {
+int u = edge[0], v = edge[1], w = edge[2];
+graph[u].emplace_back(v, w);
+}
+// Dijkstra: min heap, stores {distance, node}
+priority_queue<pair<int, int>, vector<pair<int, int>>, greater<>> pq;
+vector<int> dist(n + 1, INT_MAX); // shortest distance to each node
+dist[k] = 0;
+pq.emplace(0, k);
+while (!pq.empty()) {
+auto [d, u] = pq.top(); pq.pop();
+if (d > dist[u]) continue; // already visited with shorter path
+for (auto& [v, w] : graph[u]) {
+if (dist[v] > d + w) {
+dist[v] = d + w;
+pq.emplace(dist[v], v);
+}
+}
+}
+int res = 0;
+for (int i = 1; i <= n; ++i) {
+if (dist[i] == INT_MAX) return -1; // unreachable
+res = max(res, dist[i]);
+}
+return res;
+}
+```
+
+## 1514. path with maximum probability
+**類型:** graph dijkstra
+### 筆記:
+和上一題類似 先轉成adjacency list 這題的判斷方式變成要找大的 和上一題的差別在weight怎麼使用 
+要注意priority_queue內的比較方式要換成less<> 因為要找大的
+### 程式碼:
+```cpp
+double maxProbability(int n, vector<vector<int>>& edges, vector<double>& succProb, int start_node, int end_node) {
+//先做成adjacency list
+vector<vector<pair<int, double>>> graph(n);
+for(int i=0;i<edges.size();++i)
+{
+int u=edges[i][0];
+int v=edges[i][1];
+double p=succProb[i];
+graph[u].emplace_back(v, p);
+graph[v].emplace_back(u, p);
+}
+// dijkstra
+priority_queue<pair<double, int>, vector<pair<double, int>>, less<> > pq;
+vector<double> dist(n,0);
+dist[start_node] = 1;
+pq.emplace(1,start_node); //初始化
+while(!pq.empty())
+{
+auto[p1, u] = pq.top();
+pq.pop();
+if(p1<dist[u]) continue;
+for(auto& [v, p] : graph[u])
+{
+if(dist[v]<p1*p)
+{
+dist[v]=p1*p;
+pq.emplace(dist[v],v);
+}
+}
+}
+return dist[end_node];
+}
+```
+
+## 787. cheapest flights within K stops
+**類型:** graph dijkstra
+### 筆記:
+這題多了步數限制 要用多維的dist去存 避免cost高步數少的可能被覆蓋掉
+### 程式碼:
+```cpp
+int findCheapestPrice(int n, vector<vector<int>>& flights, int src, int dst, int k) {
+//先轉adjacency list
+vector<vector<pair<int, int>>> graph(n); //graph[u]=(v,w)
+for(auto& edge: flights)
+{
+int u=edge[0];
+int v=edge[1];
+int w=edge[2];
+graph[u].emplace_back(v,w);
+}
+//dijkstra
+priority_queue<tuple<int, int, int>, vector<tuple<int, int, int>>, greater<> >pq; //tuple<w, v, step>
+vector<vector<int>> dist(n, vector<int>(k+2, INT_MAX));
+dist[src][0]=0;
+pq.emplace(0, src, 0); //dist=0 , src, step=0
+while(!pq.empty())
+{
+auto [w, v, step] = pq.top();
+pq.pop();
+for(auto&[v1, w1]: graph[v])
+{
+if(w+w1<dist[v1][step] && step<=k)
+{
+dist[v1][step]=w+w1;
+pq.emplace(dist[v1][step], v1, step+1);
+}
+}
+}
+int min=INT_MAX;
+for(int i=0;i<=k;++i)
+{
+if(dist[dst][i]<min) min=dist[dst][i];
+}
+if(min==INT_MAX) return -1;
+return min;
+}
+```
+
+## 1631. path with minimum effort
+**類型:** grpah dijkstra
+### 筆記:
+這種題目可以先看是只能向右向下或4個方向都可以 如果只能右或下就可以用dp解就好 4個方向就要用dijkstra
+這題和前面的差別是不用做adjacency list 直接拿height操作就好 記得把effort放在priority queue的第一個位置
+### 程式碼:
+```cpp
+int minimumEffortPath(vector<vector<int>>& heights) {
+int m = heights.size(), n = heights[0].size();
+vector<vector<int>> cost(m, vector<int>(n, INT_MAX));
+cost[0][0] = 0;
+vector<vector<int>> dir = {{1,0},{0,1},{-1,0},{0,-1}};
+priority_queue<tuple<int, int, int>, vector<tuple<int, int, int>>, greater<>> pq;
+pq.emplace(0, 0, 0); // (effort, x, y)
+while(!pq.empty()) {
+auto [effort, x, y] = pq.top();
+pq.pop();
+if(x == m-1 && y == n-1) return effort;
+for(auto& d : dir) {
+int nx = x + d[0], ny = y + d[1];
+if(nx >= 0 && nx < m && ny >= 0 && ny < n) {
+int newEffort = max(effort, abs(heights[x][y] - heights[nx][ny]));
+if(newEffort < cost[nx][ny]) {
+cost[nx][ny] = newEffort;
+pq.emplace(newEffort, nx, ny);
+}
+}
+}
+}
+}
+```
+
+## 684. redundant connection
+**類型:** graph, union find
+### 筆記:
+union set是用一個vector去實作的 find和unionset構成 find是用遞迴的方式往上找到root才停 判斷root的方法是parent[x]=x
+unionset則是用find找到兩個輸入點的root 如果相同代表同一個集合 不同就把root合併 
+find是lazy update的 需要用到時才去更新parent 不需要每次合併都去檢查其他點會不會有問題
+這題目標是找讓圖不是tree的邊 等同第一個已經在同一個集合內的edge 所以剛好可以使用union set去做
+### 程式碼:
+```cpp
+vector<int> parent;
+int find(int x) {
+if (parent[x] != x) {
+parent[x] = find(parent[x]); // 路徑壓縮：把祖先直接指到 root
+}
+return parent[x];
+}
+bool unionSet(int x, int y) {
+int rootX = find(x);
+int rootY = find(y);
+if (rootX == rootY) return false; // 同集合，不能合併（形成環）
+parent[rootY] = rootX; // 合併
+return true;
+}
+vector<int> findRedundantConnection(vector<vector<int>>& edges) {
+int n = edges.size();
+parent.resize(n + 1);
+for (int i = 1; i <= n; ++i) parent[i] = i;
+for (auto& edge : edges) {
+if (!unionSet(edge[0], edge[1])) return edge;
+}
+return {};
+}
+```
+
+## 1319. number of operations to make network connected
+**類型:** graph, union find
+### 筆記:
+做法和上一題類似 要記錄多餘的邊數 最後計算有多少個集合 如果多餘的邊>=集合數-1就足夠補上
+這種檢查圖是否為tree或多餘邊的題目可以用union find去想
+### 程式碼:
+```cpp
+vector<int> parent;
+int find(int x)
+{
+if(x!=parent[x])
+{
+parent[x] = find(parent[x]);
+}
+return parent[x];
+}
+bool unionSet(int x, int y)
+{
+int rootx = find(x);
+int rooty = find(y);
+if(rootx == rooty) return false;
+parent[rootx]=rooty;
+return true;
+}
+int makeConnected(int n, vector<vector<int>>& connections) {
+parent = vector<int>(n);
+for(int i=0;i<n;++i) parent[i]=i;
+int cable=0;
+for(auto edge: connections)
+{
+if(!unionSet(edge[0], edge[1]))
+{
+++cable;
+}
+}
+for(int i=0;i<n;++i)
+{
+parent[i]=find(i);
+}
+sort(parent.begin(), parent.end());
+int now=INT_MAX;
+int com=0;
+for(int i=0;i<n;++i)
+{
+if(now!=parent[i])
+{
+++com;
+now=parent[i];
+}
+}
+if(com-1<=cable) return com-1;
+return -1;
+}
+```
+
+## 399. evaluate division
+**類型:** graph, union find
+### 筆記:
+這題除了記錄parent以外也要記錄weight parent內部的遞迴要包含更新weight
+### 程式碼:
+```cpp
+unordered_map<string, string> parent;
+unordered_map<string, double> weight;
+string find(string x) {
+if (parent[x] != x) {
+string orig_parent = parent[x];
+parent[x] = find(orig_parent);
+weight[x] *= weight[orig_parent];
+}
+return parent[x];
+}
+void unionSet(string x, string y, double value) {
+if (!parent.count(x)) {
+parent[x] = x;
+weight[x] = 1.0;
+}
+if (!parent.count(y)) {
+parent[y] = y;
+weight[y] = 1.0;
+}
+string rootX = find(x);
+string rootY = find(y);
+if (rootX != rootY) {
+parent[rootX] = rootY;
+// 更新權重
+weight[rootX] = value * weight[y] / weight[x];
+}
+}
+double isConnected(string x, string y) {
+if (!parent.count(x) || !parent.count(y)) return -1.0;
+if (find(x) != find(y)) return -1.0;
+return weight[x] / weight[y];
+}
+vector<double> calcEquation(vector<vector<string>>& equations, vector<double>& values, vector<vector<string>>& queries) {
+parent.clear();
+weight.clear();
+for (int i = 0; i < equations.size(); ++i) {
+unionSet(equations[i][0], equations[i][1], values[i]);
+}
+vector<double> res;
+for (auto& q : queries) {
+res.push_back(isConnected(q[0], q[1]));
+}
+return res;
+}
+```
+
+## 207. course schedule
+**類型:** grpah, topological sort
+### 筆記:
+先跑過一遍紀錄indegree 再從indegree為0的開始下手做bfs indegree變成0的就丟進queue
+queue沒東西再去檢查是否還有indegree>0的 代表有cycle 
+### 程式碼:
+```cpp
+bool canFinish(int numCourses, vector<vector<int>>& prerequisites) {
+vector<int> pre(numCourses,0);
+vector<vector<int>> graph(numCourses);
+for(auto edge: prerequisites)
+{
+pre[edge[0]]++;
+graph[edge[1]].push_back(edge[0]);
+}
+//找第一個0 ingreed的
+queue<int> q;
+int i;
+for(i=0;i<numCourses;++i)
+{
+if(pre[i]==0) q.push(i);
+}
+while(!q.empty())
+{
+int now=q.front();
+q.pop();
+for(auto v : graph[now])
+{
+pre[v]--;
+if(pre[v]==0)
+{
+q.push(v);
+}
+}
+}
+for(int j=0;j<numCourses;++j)
+{
+if(pre[j]>0) return false;
+}
+return true;
+}
+```
+
+## 210. course schedule 2
+**類型:** graph, topological sort
+### 筆記:
+和上一題一樣 多一個vector紀錄路徑就好
+### 程式碼:
+```cpp
+vector<int> findOrder(int numCourses, vector<vector<int>>& prerequisites) {
+vector<int> indegree(numCourses, 0);
+vector<vector<int>> graph(numCourses);
+for(auto edge: prerequisites)
+{
+indegree[edge[0]]++;
+graph[edge[1]].push_back(edge[0]);
+}
+//做完adjacency list和indegree
+vector<int> ans;
+queue<int> q;
+for(int i=0;i<numCourses;++i)
+{
+if(indegree[i]==0)
+{
+q.push(i);
+ans.push_back(i);
+}
+}
+//放完indegree=0的
+while(!q.empty())
+{
+int now = q.front();
+q.pop();
+for(auto a: graph[now])
+{
+--indegree[a];
+if(indegree[a]==0)
+{
+q.push(a);
+ans.push_back(a);
+}
+}
+}
+if(ans.size()==numCourses) return ans;
+vector<int> zero;
+return zero;
+}
+```
+
+## 20. Valid Parentheses
+**類型:** array, stack
+### 筆記:
+用stack 過程中遇到左括號放進來，遇到右括號如果發現stack空了或stack內最後一個東西不匹配右括弧就回傳false，最後檢查stack空了沒(有沒有多的左括弧)
+### 程式碼:
+```cpp
+var isValid = function(s) {
+let arr = [];
+const map = {
+"(": ")",
+"[": "]",
+"{": "}"
+};
+for(let i=0;i<s.length;++i){
+if(s[i]=="(" || s[i]=="[" || s[i]=="{") { //左括號放進來
+arr.push(s[i]);
+}
+else{ //右括號檢查
+if(arr.length==0) return false;
+const now = arr.pop();
+if( s[i]!=map[now] ) return false;
+}
+}
+return (arr.length==0);
+};
+```
+
+## 1047. Remove All Adjacent Duplicates In String
+**類型:** array, stack
+### 筆記:
+這題可以重複移除相鄰兩個相同字元，所以用stack去做，檢查新的等於最後一個就pop，不等於就放進來。記得檢查過程要有length=0的判斷，避免存取index=-1錯誤
+### 程式碼:
+```cpp
+var removeDuplicates = function(s) {
+let stack = [];
+stack.push(s[0]);
+for(let i=1;i<s.length;++i){
+if(stack.length==0) { stack.push(s[i]); }
+else if(stack[stack.length-1]==s[i]){
+stack.pop();
+}
+else{
+stack.push(s[i]);
+}
+}
+return stack.join("");
+};
+```
+
 ## 
 **類型:** 
 ### 筆記:
